@@ -5,5 +5,8 @@ using System.IO;
 
 public class ScreenShotController : MonoBehaviour
 {
-   
+    public void TakeScreenShot()
+    {
+        ScreenShot.TakeScreenShot("BackgroundImages", "backgroundImage");
+    }
 }

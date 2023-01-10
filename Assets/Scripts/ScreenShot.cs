@@ -172,12 +172,12 @@ public static class ScreenShot
 
     private static void SetPathSaveFile(string _path, string nameFile)
     {
-        path = string.Format("{0}/{1}/{2}.png", Application.dataPath, _path, nameFile);
+        path = string.Format("{0}/{1}/{2}.png", Application.streamingAssetsPath, _path, nameFile);
 
         if (Directory.Exists(path) == false)
         {
             Debug.Log("Path not found. Has been created");
-            string auxPath = string.Format("{0}/{1}", Application.dataPath, _path);
+            string auxPath = string.Format("{0}/{1}", Application.streamingAssetsPath, _path);
             Directory.CreateDirectory(auxPath);
         }
     }
