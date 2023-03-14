@@ -6,17 +6,19 @@ namespace Klak.TestTools {
 
 public sealed class ImageSource : MonoBehaviour
 {
-    #region Public property
+        #region Public property
 
+       
     public Texture Texture => OutputBuffer;
     public Vector2Int OutputResolution => _outputResolution;
 
-    #endregion
+    public static ImageSource Instance { get; private set; }
 
-    #region Editable attributes
+        #endregion
 
-    // Source type options
-    public enum SourceType { Texture, Video, Webcam, Card, Gradient }
+        #region Editable attributes
+        // Source type options
+        public enum SourceType { Texture, Video, Webcam, Card, Gradient }
     [SerializeField] SourceType _sourceType = SourceType.Card;
 
     // Texture mode options
@@ -36,11 +38,13 @@ public sealed class ImageSource : MonoBehaviour
     [SerializeField] RenderTexture _outputTexture = null;
     [SerializeField] Vector2Int _outputResolution = new Vector2Int(1920, 1080);
 
-    #endregion
 
-    #region Package asset reference
 
-    [SerializeField, HideInInspector] Shader _shader = null;
+        #endregion
+
+        #region Package asset reference
+
+        [SerializeField, HideInInspector] Shader _shader = null;
 
     #endregion
 
@@ -71,69 +75,92 @@ public sealed class ImageSource : MonoBehaviour
         Graphics.Blit(source, OutputBuffer, scale, offset);
     }
 
-    #endregion
+        #endregion
 
-    #region MonoBehaviour implementation
+        #region MonoBehaviour implementation
+    private void Awake()
+    {
+        Instance = this;
+    }
+
+    public void SetWebcam(string webcamName)
+    {
+         if (_sourceType == SourceType.Webcam)
+         {
+             _webcam = new WebCamTexture
+                 (webcamName,
+                 _webcamResolution.x, _webcamResolution.y, _webcamFrameRate);
+             _webcam.Play();
+         }
+    }
 
     void Start()
     {
-        // Allocate a render texture if no output texture has been given.
-        if (_outputTexture == null)
-            _buffer = new RenderTexture
-              (_outputResolution.x, _outputResolution.y, 0);
 
-        // Create a material for the shader (only on Card and Gradient)
-        if (_sourceType == SourceType.Card || _sourceType == SourceType.Gradient)
-            _material = new Material(_shader);
+            Instance = this;
+            Debug.Log(Instance);
 
-        // Texture source type:
-        // Blit a given texture, or download a texture from a given URL.
-        if (_sourceType == SourceType.Texture)
+            // Allocate a render texture if no output texture has been given.
+            if (_outputTexture == null)
+        _buffer = new RenderTexture
+            (_outputResolution.x, _outputResolution.y, 0);
+
+    // Create a material for the shader (only on Card and Gradient)
+    if (_sourceType == SourceType.Card || _sourceType == SourceType.Gradient)
+        _material = new Material(_shader);
+
+    // Texture source type:
+    // Blit a given texture, or download a texture from a given URL.
+    if (_sourceType == SourceType.Texture)
+    {
+        if (_texture != null)
         {
-            if (_texture != null)
-            {
-                Blit(_texture);
-            }
-            else
-            {
-                _webTexture = UnityWebRequestTexture.GetTexture(_textureUrl);
-                _webTexture.SendWebRequest();
-            }
+            Blit(_texture);
         }
-
-        // Video source type:
-        // Add a video player component and play a given video clip with it.
-        if (_sourceType == SourceType.Video)
+        else
         {
-            var player = gameObject.AddComponent<VideoPlayer>();
-            player.source =
-              _video != null ? VideoSource.VideoClip : VideoSource.Url;
-            player.clip = _video;
-            player.url = _videoUrl;
-            player.isLooping = true;
-            player.renderMode = VideoRenderMode.APIOnly;
-            player.Play();
-        }
-
-        // Webcam source type:
-        // Create a WebCamTexture and start capturing.
-        if (_sourceType == SourceType.Webcam)
-        {
-            _webcam = new WebCamTexture
-              (_webcamName,
-               _webcamResolution.x, _webcamResolution.y, _webcamFrameRate);
-            _webcam.Play();
-        }
-
-        // Card source type:
-        // Run the card shader to generate a test card image.
-        if (_sourceType == SourceType.Card)
-        {
-            var dims = new Vector2(OutputBuffer.width, OutputBuffer.height);
-            _material.SetVector("_Resolution", dims);
-            Graphics.Blit(null, OutputBuffer, _material, 0);
+            _webTexture = UnityWebRequestTexture.GetTexture(_textureUrl);
+            _webTexture.SendWebRequest();
         }
     }
+
+            
+    if (_sourceType == SourceType.Webcam)
+    {
+        _webcam = new WebCamTexture
+            (_webcamName,
+            _webcamResolution.x, _webcamResolution.y, _webcamFrameRate);
+        _webcam.Play();
+    }
+            
+
+    // Video source type:
+    // Add a video player component and play a given video clip with it.
+    if (_sourceType == SourceType.Video)
+    {
+        var player = gameObject.AddComponent<VideoPlayer>();
+        player.source =
+            _video != null ? VideoSource.VideoClip : VideoSource.Url;
+        player.clip = _video;
+        player.url = _videoUrl;
+        player.isLooping = true;
+        player.renderMode = VideoRenderMode.APIOnly;
+        player.Play();
+    }
+
+    // Webcam source type:
+    // Create a WebCamTexture and start capturing.
+   
+
+    // Card source type:
+    // Run the card shader to generate a test card image.
+    if (_sourceType == SourceType.Card)
+    {
+        var dims = new Vector2(OutputBuffer.width, OutputBuffer.height);
+        _material.SetVector("_Resolution", dims);
+        Graphics.Blit(null, OutputBuffer, _material, 0);
+    }
+}
 
     void OnDestroy()
     {
@@ -147,8 +174,12 @@ public sealed class ImageSource : MonoBehaviour
         if (_sourceType == SourceType.Video)
             Blit(GetComponent<VideoPlayer>().texture);
 
-        if (_sourceType == SourceType.Webcam && _webcam.didUpdateThisFrame)
-            Blit(_webcam, _webcam.videoVerticallyMirrored);
+        if (_webcam != null)
+        {
+                if (_sourceType == SourceType.Webcam && _webcam.didUpdateThisFrame)
+                    Blit(_webcam, _webcam.videoVerticallyMirrored);
+        }
+      
 
         // Asynchronous image downloading
         if (_webTexture != null && _webTexture.isDone)
